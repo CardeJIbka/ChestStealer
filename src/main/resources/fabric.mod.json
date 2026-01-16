@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "cheststealer",
+	"version": "${version}",
+	"name": "ChestStealer",
+	"description": "A mod that allows you to quickly and automatically loot items from a chest when you open it.",
+	"authors": [
+		"CardeJIbka"
+	],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/cheststealer",
+		"sources": "https://github.com/CardeJIbka/ChestStealer"
+	},
+	"license": "MIT",
+	"icon": "assets/cheststealer/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"cardejibka.cheststealer.ChestStealer"
+		],
+		"client": [
+			"cardejibka.cheststealer.ChestStealerClient"
+		]
+	},
+	"mixins": [],
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"minecraft": ">=1.21 <1.21.2",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
