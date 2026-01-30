@@ -12,6 +12,7 @@ import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +30,16 @@ public class ChestStealerClient implements ClientModInitializer {
     private boolean isStealing = false;
     private int lastSyncId = -1;
 
+    private static final KeyBinding.Category CHESTSTEALER_CATEGORY =
+            new KeyBinding.Category(Identifier.of("cheststealer", "cheststealer"));
+
     @Override
     public void onInitializeClient() {
         toggleKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.cheststealer.toggle",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_R,
-                "category.cheststealer"
+                CHESTSTEALER_CATEGORY
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
