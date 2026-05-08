@@ -7,6 +7,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.ShulkerBoxScreenHandler;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Style;
@@ -73,22 +75,23 @@ public class ChestStealerClient implements ClientModInitializer {
             lastSyncId = handler.syncId;
         }
 
-        if (handler instanceof GenericContainerScreenHandler container) {
+        int containerSlots = getContainerSlots(handler);
+
+        if (containerSlots > 0) {
             if (!isStealing) {
                 startStealing();
-                LOGGER.debug("Started smart auto-steal (slots: {})", container.getRows() * 9);
+                LOGGER.debug("Started smart auto-steal (slots: {})", containerSlots);
             }
 
-            int chestSlots = container.getRows() * 9;
             long now = System.currentTimeMillis();
 
-            if (currentSlot < chestSlots && now - lastClickTime >= DELAY_MS) {
-                int nextNonEmptySlot = findNextNonEmptySlot(container, currentSlot, chestSlots);
+            if (currentSlot < containerSlots && now - lastClickTime >= DELAY_MS) {
+                int nextNonEmptySlot = findNextNonEmptySlot(handler, currentSlot, containerSlots);
 
                 if (nextNonEmptySlot != -1) {
-                    Slot slot = container.getSlot(nextNonEmptySlot);
+                    Slot slot = handler.getSlot(nextNonEmptySlot);
                     client.interactionManager.clickSlot(
-                            container.syncId,
+                            handler.syncId,
                             nextNonEmptySlot,
                             0,
                             SlotActionType.QUICK_MOVE,
@@ -104,18 +107,28 @@ public class ChestStealerClient implements ClientModInitializer {
                 }
             }
 
-            if (currentSlot >= chestSlots) {
+            if (currentSlot >= containerSlots) {
                 resetStealing();
-                LOGGER.debug("Finished stealing from chest");
+                LOGGER.debug("Finished stealing from container");
             }
         } else {
             resetStealing();
         }
     }
 
-    private int findNextNonEmptySlot(GenericContainerScreenHandler container, int startSlot, int maxSlots) {
+    private int getContainerSlots(ScreenHandler handler) {
+        if (handler instanceof GenericContainerScreenHandler container) {
+            return container.getRows() * 9;
+        }
+        if (handler instanceof ShulkerBoxScreenHandler) {
+            return 27;
+        }
+        return -1;
+    }
+
+    private int findNextNonEmptySlot(ScreenHandler handler, int startSlot, int maxSlots) {
         for (int i = startSlot; i < maxSlots; i++) {
-            if (!container.getSlot(i).getStack().isEmpty()) {
+            if (!handler.getSlot(i).getStack().isEmpty()) {
                 return i;
             }
         }
