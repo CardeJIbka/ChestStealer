@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.screen.GenericContainerScreenHandler;
@@ -68,6 +69,16 @@ public class ChestStealerClient implements ClientModInitializer {
         if (handler.syncId != lastSyncId) {
             resetStealing();
             lastSyncId = handler.syncId;
+        }
+
+        if (client.currentScreen instanceof GenericContainerScreen screen) {
+            Text title = screen.getTitle();
+            if (title.getContent() instanceof net.minecraft.text.TranslatableTextContent translatable) {
+                if (translatable.getKey().equals("container.enderchest")) {
+                    resetStealing();
+                    return;
+                }
+            }
         }
 
         int containerSlots;
