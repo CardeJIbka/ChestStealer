@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.screen.GenericContainerScreenHandler;
@@ -12,6 +13,7 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
@@ -48,6 +50,17 @@ public class ChestStealerClient implements ClientModInitializer {
         LOGGER.debug("ChestStealer initialized | Toggle key: R | Supports chests + shulker boxes");
     }
 
+    private boolean isEnderChest(MinecraftClient client) {
+        if (client.currentScreen instanceof GenericContainerScreen screen) {
+            Text title = screen.getTitle();
+            if (title.getContent() instanceof TranslatableTextContent translatable
+                    && translatable.getKey().equals("container.enderchest")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void onClientTick(MinecraftClient client) {
         while (toggleKeyBinding.wasPressed()) {
             isEnabled = !isEnabled;
@@ -78,6 +91,11 @@ public class ChestStealerClient implements ClientModInitializer {
         }
 
         if (handler instanceof GenericContainerScreenHandler container) {
+            if (isEnderChest(client)) {
+                resetStealing();
+                LOGGER.debug("Ender chest detected — skipping");
+                return;
+            }
             processContainer(client, container, container.getRows() * 9);
         }
         else if (handler instanceof ShulkerBoxScreenHandler shulker) {
