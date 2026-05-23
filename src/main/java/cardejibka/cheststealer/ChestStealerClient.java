@@ -6,10 +6,12 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.HashedStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.*;
 import net.minecraft.ChatFormatting;
@@ -30,6 +32,8 @@ public class ChestStealerClient implements ClientModInitializer {
     private int currentSlot = 0;
     private boolean isStealing = false;
     private int lastContainerId = -1;
+
+    private static final String ENDER_CHEST_KEY = "container.enderchest";
 
     @Override
     public void onInitializeClient() {
@@ -52,7 +56,8 @@ public class ChestStealerClient implements ClientModInitializer {
                 Component status = Component.translatable("text.cheststealer." + (isEnabled ? "enabled" : "disabled"))
                         .withStyle(Style.EMPTY.withColor(isEnabled ? ChatFormatting.GREEN : ChatFormatting.RED));
 
-                client.player.sendSystemMessage(Component.literal("ChestStealer: ").append(status));
+                Component message = Component.literal("ChestStealer: ").append(status);
+                client.gui.setOverlayMessage(message, false);
             }
         }
 
@@ -62,7 +67,7 @@ public class ChestStealerClient implements ClientModInitializer {
         }
 
         AbstractContainerMenu menu = client.player.containerMenu;
-        if (menu == null || menu.containerId == 0) { // 0 = игрок инвентарь
+        if (menu == null || menu.containerId == 0) { // 0 = инвентарь игрока
             resetStealing();
             return;
         }
@@ -72,6 +77,11 @@ public class ChestStealerClient implements ClientModInitializer {
             lastContainerId = menu.containerId;
         }
 
+        if (isEnderChestOpen(client)) {
+            resetStealing();
+            return;
+        }
+
         if (menu instanceof ChestMenu chest) {
             processContainer(client, chest, chest.getRowCount() * 9);
         } else if (menu instanceof ShulkerBoxMenu shulker) {
@@ -79,6 +89,15 @@ public class ChestStealerClient implements ClientModInitializer {
         } else {
             resetStealing();
         }
+    }
+
+    private boolean isEnderChestOpen(Minecraft client) {
+        if (client.screen instanceof AbstractContainerScreen<?> screen) {
+            Component title = screen.getTitle();
+            return title.getContents() instanceof TranslatableContents tc
+                    && ENDER_CHEST_KEY.equals(tc.getKey());
+        }
+        return false;
     }
 
     private void processContainer(Minecraft client, AbstractContainerMenu menu, int containerSlots) {
