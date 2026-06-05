@@ -1,7 +1,8 @@
 {
-  "key.cheststealer.toggle": "切换 ChestStealer",
-  "category.cheststealer": "ChestStealer",
-  "key.category.cheststealer.cheststealer": "ChestStealer",
+  "key.cheststealer.toggle": "切换 Chest Stealer",
+  "category.cheststealer": "Chest Stealer",
+  "key.category.cheststealer.cheststealer": "Chest Stealer",
+  "text.cheststealer.prefix": "Chest Stealer: ",
   "text.cheststealer.enabled": "§a已启用",
   "text.cheststealer.disabled": "§c已禁用"
 }
