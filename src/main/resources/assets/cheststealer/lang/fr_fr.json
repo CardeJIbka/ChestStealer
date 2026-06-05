@@ -1,7 +1,8 @@
 {
-  "key.cheststealer.toggle": "Activer/Désactiver ChestStealer",
-  "category.cheststealer": "ChestStealer",
-  "key.category.cheststealer.cheststealer": "ChestStealer",
+  "key.cheststealer.toggle": "Activer/Désactiver Chest Stealer",
+  "category.cheststealer": "Chest Stealer",
+  "key.category.cheststealer.cheststealer": "Chest Stealer",
+  "text.cheststealer.prefix": "Chest Stealer: ",
   "text.cheststealer.enabled": "§aACTIVÉ",
   "text.cheststealer.disabled": "§cDÉSACTIVÉ"
 }

@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "cheststealer",
 	"version": "${version}",
-	"name": "ChestStealer",
+	"name": "Chest Stealer",
 	"description": "A mod that allows you to quickly and automatically loot items from a chest when you open it.",
 	"authors": [
 		"CardeJIbka"
