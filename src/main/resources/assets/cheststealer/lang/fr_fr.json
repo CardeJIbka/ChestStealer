@@ -2,6 +2,7 @@
   "key.cheststealer.toggle": "Activer/Désactiver ChestStealer",
   "category.cheststealer": "ChestStealer",
   "key.category.cheststealer.cheststealer": "ChestStealer",
+  "text.cheststealer.prefix": "ChestStealer: ",
   "text.cheststealer.enabled": "§aACTIVÉ",
   "text.cheststealer.disabled": "§cDÉSACTIVÉ"
 }
