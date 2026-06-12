@@ -10,7 +10,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.HashedPatchMap;
 import net.minecraft.network.HashedStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
@@ -22,6 +21,7 @@ public class ChestStealerClient implements ClientModInitializer {
 
     private static KeyMapping toggleKeyBinding;
     private static boolean isEnabled = false;
+
     private int currentSlot = 0;
     private int lastContainerId = -1;
 
@@ -42,11 +42,9 @@ public class ChestStealerClient implements ClientModInitializer {
             if (client.player != null) {
                 Component status = Component.translatable("text.cheststealer." + (isEnabled ? "enabled" : "disabled"))
                         .withStyle(isEnabled ? ChatFormatting.GREEN : ChatFormatting.RED);
-
-                Component message = Component.translatable("text.cheststealer.prefix")
-                        .append(status);
-
-                client.gui.setOverlayMessage(message, false);
+                client.gui.setOverlayMessage(
+                        Component.translatable("text.cheststealer.prefix").append(status), false
+                );
             }
         }
 
@@ -56,6 +54,7 @@ public class ChestStealerClient implements ClientModInitializer {
         }
 
         AbstractContainerMenu menu = client.player.containerMenu;
+
         if (menu.containerId == 0 || isEnderChest(client)) {
             resetStealing();
             return;
@@ -66,25 +65,22 @@ public class ChestStealerClient implements ClientModInitializer {
             lastContainerId = menu.containerId;
         }
 
-        if (menu instanceof ChestMenu chest) process(client, chest, chest.getRowCount() * 9);
-        else if (menu instanceof ShulkerBoxMenu shulker) process(client, shulker, 27);
+        if (menu instanceof ChestMenu chest)        process(client, chest, chest.getRowCount() * 9);
+        else if (menu instanceof ShulkerBoxMenu sb) process(client, sb, 27);
     }
 
     private void process(Minecraft client, AbstractContainerMenu menu, int maxSlots) {
-        for (int i = 0; i < ConfigManager.itemsPerTick; i++) {
-            if (currentSlot >= maxSlots) {
-                resetStealing();
-                break;
-            }
+        int stolen = 0;
 
+        while (currentSlot < maxSlots && stolen < ConfigManager.itemsPerTick) {
             var slot = menu.getSlot(currentSlot);
+
             if (slot.getItem().isEmpty()) {
                 currentSlot++;
                 continue;
             }
 
             String itemId = BuiltInRegistries.ITEM.getKey(slot.getItem().getItem()).toString();
-
             if (!ConfigManager.isItemAllowed(itemId)) {
                 currentSlot++;
                 continue;
@@ -97,7 +93,13 @@ public class ChestStealerClient implements ClientModInitializer {
             ));
 
             menu.clicked(currentSlot, 0, ContainerInput.QUICK_MOVE, client.player);
+
+            stolen++;
             currentSlot++;
+        }
+
+        if (currentSlot >= maxSlots) {
+            currentSlot = 0;
         }
     }
 
