@@ -1,7 +1,8 @@
 {
   "key.cheststealer.toggle": "Переключить ChestStealer",
   "category.cheststealer": "ChestStealer",
-  "key.categories.cheststealer": "ChestStealer",
+  "key.category.cheststealer.cheststealer": "ChestStealer",
+  "text.cheststealer.prefix": "ChestStealer: ",
   "text.cheststealer.enabled": "§aВКЛЮЧЕНО",
   "text.cheststealer.disabled": "§cВЫКЛЮЧЕНО"
 }

@@ -1,145 +1,123 @@
 package cardejibka.cheststealer;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.ShulkerBoxScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.world.inventory.*;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ChestStealerClient implements ClientModInitializer {
-    private static final Logger LOGGER = LoggerFactory.getLogger("ChestStealer");
-    private static KeyBinding toggleKeyBinding;
+
+    private static KeyMapping toggleKeyBinding;
     private static boolean isEnabled = false;
-    private long lastClickTime = 0;
-    private final long DELAY_MS = 0;
+
     private int currentSlot = 0;
-    private boolean isStealing = false;
-    private int lastSyncId = -1;
+    private int lastContainerId = -1;
 
     @Override
     public void onInitializeClient() {
-        toggleKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        ConfigManager.load();
+
+        toggleKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.cheststealer.toggle",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_R,
-                "category.cheststealer"
+                KeyMapping.CATEGORY_MISC
         ));
+
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
-        LOGGER.debug("ChestStealer initialized | Toggle key: R (configurable) | Smart skipping enabled");
     }
 
-    private void onClientTick(MinecraftClient client) {
-        while (toggleKeyBinding.wasPressed()) {
+    private void onClientTick(Minecraft client) {
+        while (toggleKeyBinding.consumeClick()) {
             isEnabled = !isEnabled;
             if (client.player != null) {
-                Text statusText = Text.translatable("text.cheststealer." + (isEnabled ? "enabled" : "disabled"))
-                        .setStyle(Style.EMPTY.withColor(isEnabled ? Formatting.GREEN : Formatting.RED));
-                client.player.sendMessage(
-                        Text.literal("ChestStealer: ").append(statusText),
-                        true
+                Component status = Component.translatable("text.cheststealer." + (isEnabled ? "enabled" : "disabled"))
+                        .withStyle(isEnabled ? ChatFormatting.GREEN : ChatFormatting.RED);
+                client.gui.setOverlayMessage(
+                        Component.translatable("text.cheststealer.prefix").append(status), false
                 );
             }
-            LOGGER.debug("ChestStealer toggled: {}", isEnabled);
         }
 
-        if (!isEnabled) {
+        if (!isEnabled || client.player == null || client.player.containerMenu == null) {
             resetStealing();
             return;
         }
 
-        if (client.player == null || client.player.currentScreenHandler == null) {
+        AbstractContainerMenu menu = client.player.containerMenu;
+
+        if (menu.containerId == 0 || isEnderChest(client)) {
             resetStealing();
             return;
         }
 
-        var handler = client.player.currentScreenHandler;
-        if (handler.syncId != lastSyncId) {
+        if (menu.containerId != lastContainerId) {
             resetStealing();
-            lastSyncId = handler.syncId;
+            lastContainerId = menu.containerId;
         }
 
-        if (client.currentScreen instanceof GenericContainerScreen screen) {
-            Text title = screen.getTitle();
-            if (title.getContent() instanceof net.minecraft.text.TranslatableTextContent translatable) {
-                if (translatable.getKey().equals("container.enderchest")) {
-                    resetStealing();
-                    return;
-                }
+        if (menu instanceof ChestMenu chest)        process(client, chest, chest.getRowCount() * 9);
+        else if (menu instanceof ShulkerBoxMenu sb) process(client, sb, 27);
+    }
+
+    private void process(Minecraft client, AbstractContainerMenu menu, int maxSlots) {
+        int stolen = 0;
+
+        while (currentSlot < maxSlots && stolen < ConfigManager.itemsPerTick) {
+            var slot = menu.getSlot(currentSlot);
+
+            if (slot.getItem().isEmpty()) {
+                currentSlot++;
+                continue;
             }
-        }
 
-        int containerSlots;
-        if (handler instanceof GenericContainerScreenHandler generic) {
-            containerSlots = generic.getRows() * 9;
-        } else if (handler instanceof ShulkerBoxScreenHandler) {
-            containerSlots = 27;
-        } else {
-            resetStealing();
-            return;
-        }
-
-        if (!isStealing) {
-            startStealing();
-            LOGGER.debug("Started smart auto-steal (slots: {})", containerSlots);
-        }
-
-        long now = System.currentTimeMillis();
-        if (currentSlot < containerSlots && now - lastClickTime >= DELAY_MS) {
-            int nextNonEmptySlot = findNextNonEmptySlot(handler, currentSlot, containerSlots);
-            if (nextNonEmptySlot != -1) {
-                Slot slot = handler.getSlot(nextNonEmptySlot);
-                client.interactionManager.clickSlot(
-                        handler.syncId,
-                        nextNonEmptySlot,
-                        0,
-                        SlotActionType.QUICK_MOVE,
-                        client.player
-                );
-                currentSlot = nextNonEmptySlot + 1;
-                lastClickTime = now;
-                LOGGER.debug("Quick-moved slot {} ({})", nextNonEmptySlot, slot.getStack().getItem().getName().getString());
-            } else {
-                resetStealing();
-                LOGGER.debug("All remaining slots empty — finished stealing");
+            String itemId = BuiltInRegistries.ITEM.getKey(slot.getItem().getItem()).toString();
+            if (!ConfigManager.isItemAllowed(itemId)) {
+                currentSlot++;
+                continue;
             }
+
+            client.getConnection().send(new ServerboundContainerClickPacket(
+                    menu.containerId,
+                    menu.getStateId(),
+                    currentSlot,
+                    0,
+                    ClickType.QUICK_MOVE,
+                    ItemStack.EMPTY,            // carriedItem — пустой при QUICK_MOVE
+                    new Int2ObjectOpenHashMap<>() // changedSlots
+            ));
+
+            menu.clicked(currentSlot, 0, ClickType.QUICK_MOVE, client.player);
+
+            stolen++;
+            currentSlot++;
         }
 
-        if (currentSlot >= containerSlots) {
-            resetStealing();
-            LOGGER.debug("Finished stealing from container");
+        if (currentSlot >= maxSlots) {
+            currentSlot = 0;
         }
     }
 
-    private int findNextNonEmptySlot(ScreenHandler handler, int startSlot, int maxSlots) {
-        for (int i = startSlot; i < maxSlots; i++) {
-            if (!handler.getSlot(i).getStack().isEmpty()) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private void startStealing() {
-        isStealing = true;
-        currentSlot = 0;
-        lastClickTime = System.currentTimeMillis() - DELAY_MS;
+    private boolean isEnderChest(Minecraft client) {
+        return client.screen instanceof AbstractContainerScreen<?> s &&
+                s.getTitle().getContents() instanceof TranslatableContents tc &&
+                "container.enderchest".equals(tc.getKey());
     }
 
     private void resetStealing() {
-        isStealing = false;
         currentSlot = 0;
+        lastContainerId = -1;
     }
 }

@@ -1,7 +1,8 @@
 {
   "key.cheststealer.toggle": "ChestStealer を切り替え",
   "category.cheststealer": "ChestStealer",
-  "key.categories.cheststealer": "ChestStealer",
+  "key.category.cheststealer.cheststealer": "ChestStealer",
+  "text.cheststealer.prefix": "ChestStealer: ",
   "text.cheststealer.enabled": "§a有効",
   "text.cheststealer.disabled": "§c無効"
 }
