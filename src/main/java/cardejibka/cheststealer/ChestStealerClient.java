@@ -42,7 +42,7 @@ public class ChestStealerClient implements ClientModInitializer {
             if (client.player != null) {
                 Component status = Component.translatable("text.cheststealer." + (isEnabled ? "enabled" : "disabled"))
                         .withStyle(isEnabled ? ChatFormatting.GREEN : ChatFormatting.RED);
-                client.gui.setOverlayMessage(
+                client.gui.hud.setOverlayMessage(
                         Component.translatable("text.cheststealer.prefix").append(status), false
                 );
             }
@@ -104,7 +104,7 @@ public class ChestStealerClient implements ClientModInitializer {
     }
 
     private boolean isEnderChest(Minecraft client) {
-        return client.screen instanceof AbstractContainerScreen<?> s &&
+        return client.gui.screen() instanceof AbstractContainerScreen<?> s &&
                 s.getTitle().getContents() instanceof TranslatableContents tc &&
                 "container.enderchest".equals(tc.getKey());
     }
