@@ -10,11 +10,11 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.HashedStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.*;
-import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 public class ChestStealerClient implements ClientModInitializer {
@@ -92,11 +92,11 @@ public class ChestStealerClient implements ClientModInitializer {
             client.getConnection().send(new ServerboundContainerClickPacket(
                     menu.containerId,
                     menu.getStateId(),
-                    currentSlot,
-                    0,
+                    (short) currentSlot,
+                    (byte) 0,
                     ClickType.QUICK_MOVE,
-                    ItemStack.EMPTY,            // carriedItem — пустой при QUICK_MOVE
-                    new Int2ObjectOpenHashMap<>() // changedSlots
+                    new Int2ObjectOpenHashMap<>(),
+                    HashedStack.create(slot.getItem(), component -> component.hashCode())
             ));
 
             menu.clicked(currentSlot, 0, ClickType.QUICK_MOVE, client.player);
